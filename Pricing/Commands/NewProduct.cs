@@ -8,33 +8,30 @@ using System;
 
 namespace Pricing.Commands
 {
-    public class NewProduct : IChainedCommand
+    public class NewProduct : ChainnedCommand
     {
         private readonly IRepository<Product> _productRepository;
         private readonly IPriceConverter _priceConverter;
-        private readonly IChainedCommand _nextCommand;
         private readonly ILogger _logger;
 
         public NewProduct(
             ILogger logger,
             IRepository<Product> productRepository,
             IPriceConverter priceConverter,
-            IChainedCommand nextCommand)
+            IChainedCommand nextCommand) : base(nextCommand)
         {
             _logger = logger;
             _productRepository = productRepository;
             _priceConverter = priceConverter;
-            _nextCommand = nextCommand;
         }
 
-        public void Execute(ProductRecord productRecord, Product product)
+        protected override bool CanBeHandled(ProductRecord productRecord, Product product)
         {
-            if (!NewProductShouldBeCreated(productRecord, product))
-            {
-                _nextCommand.Execute(productRecord, product);
-                return;
-            }
+            return product == null && !productRecord.Discontinued;
+        }
 
+        protected override void Run(ProductRecord productRecord, Product product)
+        {
             if (!_priceConverter.TryConvert(productRecord.Price, out var priceInCents))
             {
                 _logger.LogError($"Could not convert price to cents productRecord: {productRecord}, product : {product}");
@@ -56,11 +53,6 @@ namespace Pricing.Commands
                 Name = productRecord.Name,
                 Price = priceInCents
             };
-        }
-
-        private static bool NewProductShouldBeCreated(ProductRecord productRecord, Product product)
-        {
-            return product == null && !productRecord.Discontinued;
         }
     }
 }

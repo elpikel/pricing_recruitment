@@ -5,26 +5,23 @@ using Pricing.Models;
 
 namespace Pricing.Commands
 {
-    public class ProductMismatch : IChainedCommand
+    public class ProductMismatch : ChainnedCommand
     {
         private readonly ILogger _logger;
 
-        public ProductMismatch(ILogger logger)
+        public ProductMismatch(ILogger logger) : base(null)
         {
             _logger = logger;
         }
 
-        public void Execute(ProductRecord productRecord, Product product)
-        {
-            if (ThereIsMismatchInNames(productRecord, product))
-            {
-                _logger.LogError($"There was mismatch between: productRecord: {productRecord} and product: {product}");
-            }
-        }
-
-        private static bool ThereIsMismatchInNames(ProductRecord productRecord, Product product)
+        protected override bool CanBeHandled(ProductRecord productRecord, Product product)
         {
             return product != null && !string.Equals(productRecord.Name, product.Name);
+        }
+
+        protected override void Run(ProductRecord productRecord, Product product)
+        {
+            _logger.LogError($"There was mismatch between: productRecord: {productRecord} and product: {product}");
         }
     }
 }
